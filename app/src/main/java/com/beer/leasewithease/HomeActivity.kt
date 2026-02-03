@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
@@ -70,7 +72,7 @@ class HomeActivity : ComponentActivity() {
                             actions = {
                                 IconButton(onClick = { context.startActivity(Intent(context, AddContractActivity::class.java)) }) {
                                     Icon(
-                                        painter = painterResource(id = R.drawable.ic_car_add_front),
+                                        imageVector = Icons.Filled.Add,
                                         contentDescription = "Add Contract",
                                         tint = MaterialTheme.colorScheme.onPrimary
                                     )
@@ -97,8 +99,19 @@ fun ContractList(contractViewModel: ContractViewModel, modifier: Modifier = Modi
     val context = LocalContext.current
 
     if (contracts.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "No contracts yet. Add one!")
+        Column(
+            modifier = modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "No contracts yet.")
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { context.startActivity(Intent(context, AddContractActivity::class.java)) },
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Add one")
+            }
         }
     } else {
         LazyColumn(modifier = modifier.fillMaxSize()) {
