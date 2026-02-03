@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.beer.leasewithease.domain.model.Contract
 import com.beer.leasewithease.domain.model.VehicleType
 import com.beer.leasewithease.theme.LeaseWithEaseTheme
+import com.beer.leasewithease.theme.customColors
 import com.beer.leasewithease.ui.home.ContractViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.concurrent.TimeUnit
@@ -70,6 +71,13 @@ class HomeActivity : ComponentActivity() {
                                 titleContentColor = MaterialTheme.colorScheme.onPrimary
                             ),
                             actions = {
+                                IconButton(onClick = { context.startActivity(Intent(context, HelpActivity::class.java)) }) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_help),
+                                        contentDescription = "Help",
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
                                 IconButton(onClick = { context.startActivity(Intent(context, AddContractActivity::class.java)) }) {
                                     Icon(
                                         imageVector = Icons.Filled.Add,
@@ -246,7 +254,7 @@ fun ContractCard(contract: Contract, onEditClick: () -> Unit, onLongClick: () ->
                 ) {
                     Text(
                         text = contract.contractType.toString(),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
@@ -305,8 +313,8 @@ fun ContractCard(contract: Contract, onEditClick: () -> Unit, onLongClick: () ->
             val kilometerDifference = allowedKilometersForToday - actualUsedKilometers
 
             val differenceColor = when {
-                kilometerDifference > 5 -> Color(0xFF00C853) // Green
-                kilometerDifference < -5 -> Color(0xFFD50000) // Red
+                kilometerDifference > 5 -> MaterialTheme.customColors.balanceIndicatorGood
+                kilometerDifference < -5 -> MaterialTheme.customColors.balanceIndicatorBad
                 else -> LocalContentColor.current
             }
 
@@ -340,13 +348,13 @@ fun ContractCard(contract: Contract, onEditClick: () -> Unit, onLongClick: () ->
                             Modifier
                                 .fillMaxWidth(greenProgress)
                                 .fillMaxHeight()
-                                .background(Color(0xFF00C853))
+                                .background(MaterialTheme.customColors.balanceIndicatorGood)
                                 .align(Alignment.CenterEnd)
                         )
                     }
 
                     Divider(
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier
                             .fillMaxHeight()
                             .width(1.dp)
@@ -357,7 +365,7 @@ fun ContractCard(contract: Contract, onEditClick: () -> Unit, onLongClick: () ->
                             Modifier
                                 .fillMaxWidth(redProgress)
                                 .fillMaxHeight()
-                                .background(Color(0xFFD50000))
+                                .background(MaterialTheme.customColors.balanceIndicatorBad)
                                 .align(Alignment.CenterStart)
                         )
                     }

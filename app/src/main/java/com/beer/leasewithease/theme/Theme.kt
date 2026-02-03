@@ -9,12 +9,35 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+// Custom colors data class
+data class CustomColors(
+    val balanceIndicatorGood: Color,
+    val balanceIndicatorBad: Color
+)
+
+// Defining the custom colors
+private val LightCustomColors = CustomColors(
+    balanceIndicatorGood = Green,
+    balanceIndicatorBad = Red
+)
+
+private val DarkCustomColors = CustomColors(
+    balanceIndicatorGood = Green,
+    balanceIndicatorBad = Red
+)
+
+// CompositionLocal for custom colors
+private val LocalCustomColors = staticCompositionLocalOf { LightCustomColors }
 
 private val DarkColorScheme = darkColorScheme(
     primary = TechBlue200,
@@ -42,6 +65,12 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color.Black
 )
 
+// Custom theme accessor
+val MaterialTheme.customColors: CustomColors
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalCustomColors.current
+
 @Composable
 fun LeaseWithEaseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -58,6 +87,9 @@ fun LeaseWithEaseTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+
+    val customColors = if (darkTheme) DarkCustomColors else LightCustomColors
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -67,9 +99,11 @@ fun LeaseWithEaseTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalCustomColors provides customColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }
