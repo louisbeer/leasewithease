@@ -17,6 +17,10 @@ class ContractViewModel @Inject constructor(private val contractRepository: Cont
     val contracts: StateFlow<List<Contract>> = contractRepository.getAllContracts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    suspend fun getContractById(id: Int): Contract? {
+        return contractRepository.getContractById(id)
+    }
+
     fun updateContract(contract: Contract) {
         viewModelScope.launch {
             contractRepository.updateContract(contract)

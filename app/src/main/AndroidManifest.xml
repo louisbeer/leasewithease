@@ -35,6 +35,10 @@
             android:label="Add Contract"
             android:theme="@style/Theme.LeaseWithEase" />
         <activity
+            android:name=".EditContractActivity"
+            android:label="Edit Contract"
+            android:theme="@style/Theme.LeaseWithEase" />
+        <activity
             android:name=".HelpActivity"
             android:label="Help"
             android:theme="@style/Theme.LeaseWithEase" />

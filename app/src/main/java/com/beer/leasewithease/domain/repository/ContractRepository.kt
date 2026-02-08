@@ -9,6 +9,8 @@ class ContractRepository @Inject constructor(private val contractDao: ContractDa
 
     fun getAllContracts(): Flow<List<Contract>> = contractDao.getAllContracts()
 
+    suspend fun getContractById(id: Int): Contract? = contractDao.getContractById(id)
+
     suspend fun insertContract(contract: Contract) {
         contractDao.insert(contract)
     }

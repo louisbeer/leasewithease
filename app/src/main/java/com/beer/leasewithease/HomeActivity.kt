@@ -38,6 +38,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -174,7 +175,7 @@ fun ContractList(contractViewModel: ContractViewModel, modifier: Modifier = Modi
                 Toast.makeText(context, "Action was cancelled", Toast.LENGTH_SHORT).show()
             },
             sheetState = sheetState,
-            modifier = Modifier.height(screenHeight * 0.3f)
+            modifier = Modifier.height(screenHeight * 0.4f)
         ) {
             var mileage by remember { mutableStateOf(selectedContractForEdit?.vehicleMileage.toString()) }
 
@@ -185,6 +186,7 @@ fun ContractList(contractViewModel: ContractViewModel, modifier: Modifier = Modi
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 TextField(
+                    modifier = Modifier.fillMaxWidth(),
                     value = mileage,
                     onValueChange = { newText ->
                         if (newText.all { it.isDigit() }) {
@@ -196,7 +198,9 @@ fun ContractList(contractViewModel: ContractViewModel, modifier: Modifier = Modi
                     singleLine = true
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
                     val newMileage = mileage.toIntOrNull()
                     if (newMileage != null) {
                         if (newMileage < selectedContractForEdit!!.vehicleMileage) {
@@ -217,7 +221,18 @@ fun ContractList(contractViewModel: ContractViewModel, modifier: Modifier = Modi
                         }
                     }
                 }) {
-                    Text("Save")
+                    Text("Update mileage")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        val intent = Intent(context, EditContractActivity::class.java)
+                        intent.putExtra("contractId", selectedContractForEdit?.id?.toInt())
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text("Edit contract")
                 }
                 Spacer(modifier = Modifier.height(32.dp))
             }
