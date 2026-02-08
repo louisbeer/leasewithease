@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.beer.leasewithease.theme.LeaseWithEaseTheme
 
@@ -36,6 +38,7 @@ class HelpActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val versionName = packageManager.getPackageInfo(packageName, 0).versionName
         setContent {
             LeaseWithEaseTheme {
                 val context = LocalContext.current
@@ -63,7 +66,7 @@ class HelpActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize().padding(padding),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        HelpScreen {
+                        HelpScreen(versionName = versionName) {
                             sendEmail()
                         }
                     }
@@ -89,25 +92,35 @@ class HelpActivity : ComponentActivity() {
 }
 
 @Composable
-fun HelpScreen(onSendMailClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "You need help using the app, got any questions or feature proposals? Feel free to contact me.",
-            modifier = Modifier.padding(bottom = 16.dp),
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Button(
-            onClick = onSendMailClick,
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+fun HelpScreen(versionName: String?, onSendMailClick: () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text(text = "Send Mail", color = MaterialTheme.colorScheme.onPrimary)
+            Text(
+                text = "You need help using the app, got any questions or feature proposals? Feel free to contact me.",
+                modifier = Modifier.padding(bottom = 16.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center
+            )
+            Button(
+                onClick = onSendMailClick,
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Text(text = "Send Mail", color = MaterialTheme.colorScheme.onPrimary)
+            }
         }
+        Text(
+            text = "Version: ${versionName ?: "N/A"}",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
     }
 }
