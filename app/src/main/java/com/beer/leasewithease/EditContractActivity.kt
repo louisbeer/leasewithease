@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.beer.leasewithease.domain.model.ContractType
@@ -123,6 +124,7 @@ fun EditContractScreen(viewModel: EditContractViewModel, onSaveSuccess: () -> Un
     var costPerExtraKm by remember { mutableStateOf("") }
     var isRecurring by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(contract) {
         contract?.let {
@@ -183,7 +185,10 @@ fun EditContractScreen(viewModel: EditContractViewModel, onSaveSuccess: () -> Un
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(
                         selected = selectedVehicleType == vehicleType,
-                        onClick = { selectedVehicleType = vehicleType }
+                        onClick = {
+                            focusManager.clearFocus()
+                            selectedVehicleType = vehicleType
+                        }
                     )
                     Text(text = vehicleType.name)
                 }
@@ -198,7 +203,10 @@ fun EditContractScreen(viewModel: EditContractViewModel, onSaveSuccess: () -> Un
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(
                         selected = selectedContractType == contractType,
-                        onClick = { selectedContractType = contractType }
+                        onClick = {
+                            focusManager.clearFocus()
+                            selectedContractType = contractType
+                        }
                     )
                     Text(text = contractType.name)
                 }
@@ -207,7 +215,10 @@ fun EditContractScreen(viewModel: EditContractViewModel, onSaveSuccess: () -> Un
         Spacer(modifier = Modifier.height(16.dp))
 
         // Start Date Picker
-        Button(onClick = { datePickerDialog.show() }) {
+        Button(onClick = {
+            focusManager.clearFocus()
+            datePickerDialog.show()
+        }) {
             Text(text = startDate?.let { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(it) } ?: "Select Start Date*")
         }
 
@@ -251,12 +262,16 @@ fun EditContractScreen(viewModel: EditContractViewModel, onSaveSuccess: () -> Un
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
                 checked = isRecurring,
-                onCheckedChange = { isRecurring = it }
+                onCheckedChange = {
+                    focusManager.clearFocus()
+                    isRecurring = it
+                }
             )
             Text(text = "Is Recurring")
         }
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = {
+            focusManager.clearFocus()
             if (vehicleName.isBlank() || selectedVehicleType == null || selectedContractType == null || startDate == null || duration.isBlank() || includedKm.isBlank()) {
                 Toast.makeText(context, "Please fill all required fields", Toast.LENGTH_SHORT).show()
                 return@Button
