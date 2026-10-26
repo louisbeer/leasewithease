@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -54,7 +55,12 @@ import com.beer.leasewithease.domain.model.PlannedTrip
 import com.beer.leasewithease.domain.usecase.PlannedTripSchedule
 import com.beer.leasewithease.theme.LeaseWithEaseTheme
 import com.beer.leasewithease.theme.customColors
+import com.beer.leasewithease.widget.CompactInfoWidget
+import com.beer.leasewithease.widget.QuickUpdateWidget
+import com.beer.leasewithease.widget.VisualWidget
+import androidx.glance.appwidget.updateAll
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -138,6 +144,18 @@ class PlannedTripsActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    // HomeActivity refreshes the widgets when it comes back to the front, which covers going back
+    // from here. Leaving straight for the home screen does not pass through it, so nudge them here
+    // too rather than let a widget sit on a balance that no longer holds the trip back.
+    override fun onStop() {
+        super.onStop()
+        lifecycleScope.launch {
+            CompactInfoWidget().updateAll(this@PlannedTripsActivity)
+            QuickUpdateWidget().updateAll(this@PlannedTripsActivity)
+            VisualWidget().updateAll(this@PlannedTripsActivity)
         }
     }
 
