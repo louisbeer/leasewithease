@@ -77,6 +77,7 @@ import androidx.compose.ui.unit.dp
 import com.beer.leasewithease.domain.model.Contract
 import com.beer.leasewithease.domain.model.VehicleType
 import com.beer.leasewithease.domain.usecase.CalculateMileageDiff
+import com.beer.leasewithease.domain.usecase.MileageDiffResult
 import com.beer.leasewithease.theme.LeaseWithEaseTheme
 import com.beer.leasewithease.theme.customColors
 import com.beer.leasewithease.ui.home.ContractViewModel
@@ -86,6 +87,8 @@ import com.beer.leasewithease.widget.QuickUpdateWidget
 import com.beer.leasewithease.widget.VisualWidget
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.floor
 
 @AndroidEntryPoint
 class HomeActivity : ComponentActivity() {
@@ -489,9 +492,36 @@ fun ContractCard(contract: Contract, onEditClick: () -> Unit, onLongClick: () ->
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
+
+                MileagePaceRow(
+                    diff = diff,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
         }
     }
+}
+
+// Pace the driver may keep from today on to land exactly on the included
+// allowance. Floored, so following the figure never overshoots the budget.
+@Composable
+fun MileagePaceRow(diff: MileageDiffResult, modifier: Modifier = Modifier) {
+    val perDay = diff.allowedKmPerDay
+    val text = when {
+        perDay == null -> "Term ended"
+        diff.remainingKilometers < 0 -> "0 km/day · %,.0f km over".format(floor(abs(diff.remainingKilometers)))
+        else -> "%,.0f km/day · %,.0f/wk · %,.0f/mo".format(
+            floor(perDay),
+            floor(perDay * 7),
+            floor(perDay * CalculateMileageDiff.DAYS_PER_MONTH)
+        )
+    }
+    Text(
+        text = text,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = modifier
+    )
 }
 
 class ParallelogramShape : Shape {

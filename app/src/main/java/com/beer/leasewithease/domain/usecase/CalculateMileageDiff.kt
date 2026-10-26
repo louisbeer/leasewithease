@@ -9,23 +9,32 @@ data class MileageDiffResult(
     val costText: String,
     val progress: Float,
     val greenProgress: Float,
-    val redProgress: Float
+    val redProgress: Float,
+    val planKmPerDay: Double,
+    val remainingKilometers: Double,
+    val remainingDays: Double,
+    val allowedKmPerDay: Double?
 )
 
 object CalculateMileageDiff {
-    fun calculate(contract: Contract): MileageDiffResult {
-        val contractDurationInDays = contract.durationInMonths * 30.4375
-        val now = System.currentTimeMillis()
+
+    // Average days in a month. Used for the contract duration and for the
+    // per-month pace figure alike, so the two always agree.
+    const val DAYS_PER_MONTH = 30.4375
+
+    fun calculate(contract: Contract, now: Long = System.currentTimeMillis()): MileageDiffResult {
+        val contractDurationInDays = contract.durationInMonths * DAYS_PER_MONTH
         val daysSinceContractStart = if (contract.startDate.time > 0 && contract.startDate.time <= now) {
             TimeUnit.MILLISECONDS.toDays(now - contract.startDate.time) + 1
         } else {
             0L
         }
-        val allowedKilometersForToday = if (contractDurationInDays > 0) {
-            (contract.includedKilometers.toDouble() / contractDurationInDays) * daysSinceContractStart
+        val planKmPerDay = if (contractDurationInDays > 0) {
+            contract.includedKilometers.toDouble() / contractDurationInDays
         } else {
             0.0
         }
+        val allowedKilometersForToday = planKmPerDay * daysSinceContractStart
         val actualUsedKilometers = (contract.vehicleMileage - contract.mileageAtContractStart).coerceAtLeast(0)
         val kilometerDifference = allowedKilometersForToday - actualUsedKilometers
 
@@ -43,12 +52,27 @@ object CalculateMileageDiff {
             0f
         }
 
+        // Pace the driver may keep from today on to finish exactly on the
+        // included allowance. Shares daysSinceContractStart with the balance
+        // above so both numbers always describe the same day.
+        val remainingKilometers = contract.includedKilometers - actualUsedKilometers.toDouble()
+        val remainingDays = contractDurationInDays - daysSinceContractStart
+        val allowedKmPerDay = if (remainingDays > 0) {
+            (remainingKilometers / remainingDays).coerceAtLeast(0.0)
+        } else {
+            null
+        }
+
         return MileageDiffResult(
             kilometerDifference = kilometerDifference,
             costText = costText,
             progress = progress,
             greenProgress = progress.coerceIn(0f, 1f),
-            redProgress = (-progress).coerceIn(0f, 1f)
+            redProgress = (-progress).coerceIn(0f, 1f),
+            planKmPerDay = planKmPerDay,
+            remainingKilometers = remainingKilometers,
+            remainingDays = remainingDays,
+            allowedKmPerDay = allowedKmPerDay
         )
     }
 }
