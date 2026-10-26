@@ -50,9 +50,13 @@ class CompactInfoWidget : GlanceAppWidget() {
 
         provideContent {
             GlanceTheme(colors = LeaseWithEaseWidgetColors) {
-                val contract = rememberConfiguredContract(initialContract)
-                if (contract != null) {
-                    val diff = CalculateMileageDiff.calculate(contract)
+                val contractWithTrips = rememberConfiguredContract(initialContract)
+                if (contractWithTrips != null) {
+                    val contract = contractWithTrips.contract
+                    val diff = CalculateMileageDiff.calculate(
+                        contract,
+                        contractWithTrips.plannedTrips
+                    )
                     val size = LocalSize.current
 
                     if (size.height >= 100.dp) {

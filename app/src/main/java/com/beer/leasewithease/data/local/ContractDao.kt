@@ -4,18 +4,25 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.beer.leasewithease.domain.model.Contract
+import com.beer.leasewithease.domain.model.ContractWithTrips
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ContractDao {
 
+    @Transaction
     @Query("SELECT * FROM contract")
-    fun getAllContracts(): Flow<List<Contract>>
+    fun getAllContractsWithTrips(): Flow<List<ContractWithTrips>>
 
     @Query("SELECT * FROM contract WHERE id = :id")
     suspend fun getContractById(id: Int): Contract?
+
+    @Transaction
+    @Query("SELECT * FROM contract WHERE id = :id")
+    suspend fun getContractWithTripsById(id: Long): ContractWithTrips?
 
     @Insert
     suspend fun insert(contract: Contract)

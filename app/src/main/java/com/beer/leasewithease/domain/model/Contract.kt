@@ -17,7 +17,12 @@ data class Contract(
     val durationInMonths: Int,
     val includedKilometers: Int,
     val costPerExtraKilometer: Float = 0f,
-    val isRecurring: Boolean = false
+    val isRecurring: Boolean = false,
+    /**
+     * When the odometer reading was last entered. Used to tell whether a planned trip that has
+     * already happened has been reflected in [vehicleMileage] yet.
+     */
+    val lastMileageUpdateAt: Date? = null
 )
 
 enum class ContractType {

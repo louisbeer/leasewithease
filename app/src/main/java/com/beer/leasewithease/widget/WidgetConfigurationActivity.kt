@@ -38,6 +38,7 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.lifecycle.lifecycleScope
 import com.beer.leasewithease.domain.model.Contract
+import com.beer.leasewithease.domain.model.ContractWithTrips
 import com.beer.leasewithease.domain.model.VehicleType
 import com.beer.leasewithease.domain.usecase.CalculateMileageDiff
 import com.beer.leasewithease.theme.LeaseWithEaseTheme
@@ -75,7 +76,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 val contracts by viewModel.contracts.collectAsState()
                 VehiclePickerScreen(
                     contracts = contracts,
-                    onContractSelected = { saveSelectionAndFinish(it) }
+                    onContractSelected = { saveSelectionAndFinish(it.contract) }
                 )
             }
         }
@@ -136,8 +137,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VehiclePickerScreen(
-    contracts: List<Contract>,
-    onContractSelected: (Contract) -> Unit
+    contracts: List<ContractWithTrips>,
+    onContractSelected: (ContractWithTrips) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -168,10 +169,10 @@ private fun VehiclePickerScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                items(contracts) { contract ->
+                items(contracts) { contractWithTrips ->
                     VehiclePickerItem(
-                        contract = contract,
-                        onClick = { onContractSelected(contract) }
+                        contractWithTrips = contractWithTrips,
+                        onClick = { onContractSelected(contractWithTrips) }
                     )
                     HorizontalDivider()
                 }
@@ -181,8 +182,9 @@ private fun VehiclePickerScreen(
 }
 
 @Composable
-private fun VehiclePickerItem(contract: Contract, onClick: () -> Unit) {
-    val diff = CalculateMileageDiff.calculate(contract)
+private fun VehiclePickerItem(contractWithTrips: ContractWithTrips, onClick: () -> Unit) {
+    val contract = contractWithTrips.contract
+    val diff = CalculateMileageDiff.calculate(contract, contractWithTrips.plannedTrips)
     val diffColor = when {
         diff.kilometerDifference > 5 -> MaterialTheme.customColors.balanceIndicatorGood
         diff.kilometerDifference < -5 -> MaterialTheme.customColors.balanceIndicatorBad

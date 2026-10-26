@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.beer.leasewithease.domain.model.Contract
+import com.beer.leasewithease.domain.model.ContractWithTrips
 import com.beer.leasewithease.domain.model.VehicleType
 import com.beer.leasewithease.domain.usecase.CalculateMileageDiff
 import com.beer.leasewithease.domain.usecase.MileageDiffResult
@@ -87,6 +88,8 @@ import com.beer.leasewithease.widget.QuickUpdateWidget
 import com.beer.leasewithease.widget.VisualWidget
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.floor
 
@@ -163,8 +166,11 @@ fun ContractList(
     openContractId: Long = -1L
 ) {
     val contracts by contractViewModel.contracts.collectAsState()
-    var selectedContractForEdit by remember { mutableStateOf<Contract?>(null) }
-    var contractToDelete by remember { mutableStateOf<Contract?>(null) }
+    var selectedContractId by remember { mutableStateOf<Long?>(null) }
+    // Resolved from the live list rather than held on to, so the sheet keeps up with trips added
+    // on the trips screen and never writes back a contract that has changed underneath it.
+    val selectedContractForEdit = contracts.find { it.contract.id == selectedContractId }
+    var contractToDelete by remember { mutableStateOf<ContractWithTrips?>(null) }
     var showMileageDecreaseConfirmDialog by remember { mutableStateOf(false) }
     var newMileageValue by remember { mutableStateOf(0) }
     val sheetState = rememberModalBottomSheetState()
@@ -175,9 +181,9 @@ fun ContractList(
     var handledWidgetOpen by remember { mutableStateOf(false) }
     LaunchedEffect(contracts) {
         if (openContractId != -1L && !handledWidgetOpen && contracts.isNotEmpty()) {
-            val target = contracts.find { it.id == openContractId }
+            val target = contracts.find { it.contract.id == openContractId }
             if (target != null) {
-                selectedContractForEdit = target
+                selectedContractId = target.contract.id
                 handledWidgetOpen = true
             }
         }
@@ -200,11 +206,11 @@ fun ContractList(
         }
     } else {
         LazyColumn(modifier = modifier.fillMaxSize()) {
-            items(contracts) { contract ->
+            items(contracts) { contractWithTrips ->
                 ContractCard(
-                    contract = contract,
-                    onEditClick = { selectedContractForEdit = contract },
-                    onLongClick = { contractToDelete = contract }
+                    contractWithTrips = contractWithTrips,
+                    onEditClick = { selectedContractId = contractWithTrips.contract.id },
+                    onLongClick = { contractToDelete = contractWithTrips }
                 )
             }
         }
@@ -214,13 +220,13 @@ fun ContractList(
         val screenHeight = LocalConfiguration.current.screenHeightDp.dp
         ModalBottomSheet(
             onDismissRequest = {
-                selectedContractForEdit = null
+                selectedContractId = null
                 Toast.makeText(context, "Action was cancelled", Toast.LENGTH_SHORT).show()
             },
             sheetState = sheetState,
-            modifier = Modifier.height(screenHeight * 0.4f)
+            modifier = Modifier.height(screenHeight * 0.5f)
         ) {
-            var mileage by remember { mutableStateOf(selectedContractForEdit?.vehicleMileage.toString()) }
+            var mileage by remember { mutableStateOf(selectedContractForEdit?.contract?.vehicleMileage.toString()) }
 
             Column(
                 modifier = Modifier
@@ -246,16 +252,15 @@ fun ContractList(
                     onClick = {
                     val newMileage = mileage.toIntOrNull()
                     if (newMileage != null) {
-                        if (newMileage < selectedContractForEdit!!.vehicleMileage) {
+                        if (newMileage < selectedContractForEdit!!.contract.vehicleMileage) {
                             newMileageValue = newMileage
                             showMileageDecreaseConfirmDialog = true
                         } else {
                             scope.launch {
                                 try {
-                                    val updatedContract = selectedContractForEdit!!.copy(vehicleMileage = newMileage)
-                                    contractViewModel.updateContract(updatedContract)
+                                    contractViewModel.updateMileage(selectedContractForEdit!!.contract, newMileage)
                                     sheetState.hide()
-                                    selectedContractForEdit = null
+                                    selectedContractId = null
                                     Toast.makeText(context, "Mileage updated successfully", Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
                                     Toast.makeText(context, "Error updating mileage: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
@@ -271,11 +276,26 @@ fun ContractList(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         val intent = Intent(context, EditContractActivity::class.java)
-                        intent.putExtra("contractId", selectedContractForEdit?.id?.toInt())
+                        intent.putExtra("contractId", selectedContractForEdit?.contract?.id?.toInt())
                         context.startActivity(intent)
                     }
                 ) {
                     Text("Edit contract")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        val intent = Intent(context, PlannedTripsActivity::class.java)
+                        intent.putExtra(
+                            PlannedTripsActivity.EXTRA_CONTRACT_ID,
+                            selectedContractForEdit?.contract?.id ?: -1L
+                        )
+                        context.startActivity(intent)
+                    }
+                ) {
+                    val tripCount = selectedContractForEdit?.plannedTrips?.size ?: 0
+                    Text(if (tripCount == 0) "Planned trips" else "Planned trips ($tripCount)")
                 }
                 Spacer(modifier = Modifier.height(32.dp))
             }
@@ -308,11 +328,10 @@ fun ContractList(
                     onClick = {
                         scope.launch {
                             try {
-                                val updatedContract = selectedContractForEdit!!.copy(vehicleMileage = newMileageValue)
-                                contractViewModel.updateContract(updatedContract)
+                                contractViewModel.updateMileage(selectedContractForEdit!!.contract, newMileageValue)
                                 showMileageDecreaseConfirmDialog = false
                                 sheetState.hide()
-                                selectedContractForEdit = null
+                                selectedContractId = null
                                 Toast.makeText(context, "Mileage updated successfully", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
                                 Toast.makeText(context, "Error updating mileage: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
@@ -338,7 +357,7 @@ fun ContractList(
                     onClick = {
                         scope.launch {
                             try {
-                                contractViewModel.deleteContract(contractToDelete!!)
+                                contractViewModel.deleteContract(contractToDelete!!.contract)
                                 contractToDelete = null
                                 Toast.makeText(context, "Contract deleted successfully", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
@@ -365,7 +384,12 @@ fun ContractList(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ContractCard(contract: Contract, onEditClick: () -> Unit, onLongClick: () -> Unit) {
+fun ContractCard(
+    contractWithTrips: ContractWithTrips,
+    onEditClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    val contract = contractWithTrips.contract
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -438,7 +462,7 @@ fun ContractCard(contract: Contract, onEditClick: () -> Unit, onLongClick: () ->
             }
 
             // Kilometer balance indicator
-            val diff = CalculateMileageDiff.calculate(contract)
+            val diff = CalculateMileageDiff.calculate(contract, contractWithTrips.plannedTrips)
             val kilometerDifference = diff.kilometerDifference
             val costText = diff.costText
             val greenProgress = diff.greenProgress
@@ -497,6 +521,11 @@ fun ContractCard(contract: Contract, onEditClick: () -> Unit, onLongClick: () ->
                     diff = diff,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
+
+                PlannedTripNotes(
+                    diff = diff,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
         }
     }
@@ -522,6 +551,37 @@ fun MileagePaceRow(diff: MileageDiffResult, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.bodySmall,
         modifier = modifier
     )
+}
+
+// Explains the two ways planned trips move the numbers above: kilometers held
+// back for trips still ahead, and a trip already driven that the odometer has
+// not caught up with yet.
+@Composable
+fun PlannedTripNotes(diff: MileageDiffResult, modifier: Modifier = Modifier) {
+    val dateFormat = remember { SimpleDateFormat("dd.MM.", Locale.getDefault()) }
+
+    if (diff.reservedKilometers > 0) {
+        val nextTripDate = diff.nextReservedTrip?.let { dateFormat.format(it.date) }
+        Text(
+            text = if (nextTripDate != null) {
+                "%,d km held back · next trip %s".format(diff.reservedKilometers, nextTripDate)
+            } else {
+                "%,d km held back for planned trips".format(diff.reservedKilometers)
+            },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = modifier
+        )
+    }
+
+    diff.tripNeedingMileageUpdate?.let { trip ->
+        Text(
+            text = "Planned trip on %s — update your mileage".format(dateFormat.format(trip.date)),
+            color = MaterialTheme.customColors.balanceIndicatorBad,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = modifier
+        )
+    }
 }
 
 class ParallelogramShape : Shape {
