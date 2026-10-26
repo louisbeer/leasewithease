@@ -1,6 +1,7 @@
 package com.beer.leasewithease.di
 
 import com.beer.leasewithease.data.local.ContractDao
+import com.beer.leasewithease.data.local.PlannedTripDao
 import com.beer.leasewithease.domain.repository.ContractRepository
 import dagger.Module
 import dagger.Provides
@@ -14,7 +15,10 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideContractRepository(contractDao: ContractDao): ContractRepository {
-        return ContractRepository(contractDao)
+    fun provideContractRepository(
+        contractDao: ContractDao,
+        plannedTripDao: PlannedTripDao
+    ): ContractRepository {
+        return ContractRepository(contractDao, plannedTripDao)
     }
 }
