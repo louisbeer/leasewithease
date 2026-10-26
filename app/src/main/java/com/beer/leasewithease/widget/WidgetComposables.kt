@@ -1,5 +1,8 @@
 package com.beer.leasewithease.widget
 
+import android.appwidget.AppWidgetManager
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -9,6 +12,12 @@ import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
+import androidx.glance.LocalGlanceId
+import androidx.glance.action.Action
+import androidx.glance.action.clickable
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.background
 import androidx.glance.layout.Alignment
@@ -57,7 +66,8 @@ internal fun NotConfiguredContent() {
             .fillMaxSize()
             .background(GlanceTheme.colors.surface)
             .cornerRadius(16.dp)
-            .padding(12.dp),
+            .padding(12.dp)
+            .clickable(configureWidgetAction()),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -68,6 +78,20 @@ internal fun NotConfiguredContent() {
             )
         )
     }
+}
+
+// Opens the vehicle picker for this widget instance. Each instance needs its own intent data,
+// otherwise the PendingIntents are conflated (Intent.filterEquals ignores extras) and every widget
+// would reconfigure whichever one was tapped first.
+@Composable
+private fun configureWidgetAction(): Action {
+    val context = LocalContext.current
+    val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(LocalGlanceId.current)
+    val intent = Intent(context, WidgetConfigurationActivity::class.java)
+        .setAction(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE)
+        .setData(Uri.parse("leasewithease://widget/$appWidgetId"))
+        .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+    return actionStartActivity(intent)
 }
 
 // Inset, rounded header chip: vehicle icon + name on the primary colour.

@@ -16,7 +16,6 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
-import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
@@ -34,9 +33,6 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.beer.leasewithease.HomeActivity
 import com.beer.leasewithease.domain.usecase.CalculateMileageDiff
-import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class CompactInfoWidget : GlanceAppWidget() {
 
@@ -50,20 +46,11 @@ class CompactInfoWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
-        val contractId = prefs[CONTRACT_ID_KEY]
-
-        val contract = contractId?.let {
-            withContext(Dispatchers.IO) {
-                EntryPointAccessors.fromApplication(
-                    context.applicationContext,
-                    WidgetEntryPoint::class.java
-                ).contractRepository().getContractById(it.toInt())
-            }
-        }
+        val initialContract = loadConfiguredContract(context, id)
 
         provideContent {
             GlanceTheme(colors = LeaseWithEaseWidgetColors) {
+                val contract = rememberConfiguredContract(initialContract)
                 if (contract != null) {
                     val diff = CalculateMileageDiff.calculate(contract)
                     val size = LocalSize.current

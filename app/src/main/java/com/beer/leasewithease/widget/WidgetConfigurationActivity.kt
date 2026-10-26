@@ -1,6 +1,7 @@
 package com.beer.leasewithease.widget
 
 import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.lifecycle.lifecycleScope
@@ -96,20 +98,11 @@ class WidgetConfigurationActivity : ComponentActivity() {
                     prefs[CONTRACT_ID_KEY] = contract.id
                 }
 
-                // Best-effort immediate refresh for the reconfigure case (widget already bound).
-                // On first placement the widget isn't bound yet, so getAppWidgetInfo is null and the
-                // system renders it via provideGlance once placed, reading the state we just wrote.
-                val appWidgetManager = AppWidgetManager.getInstance(this@WidgetConfigurationActivity)
-                val receiverClass = appWidgetManager.getAppWidgetInfo(appWidgetId)?.provider?.className
-
-                when (receiverClass) {
-                    CompactInfoWidgetReceiver::class.java.name ->
-                        CompactInfoWidget().update(this@WidgetConfigurationActivity, glanceId)
-                    QuickUpdateWidgetReceiver::class.java.name ->
-                        QuickUpdateWidget().update(this@WidgetConfigurationActivity, glanceId)
-                    VisualWidgetReceiver::class.java.name ->
-                        VisualWidget().update(this@WidgetConfigurationActivity, glanceId)
-                }
+                // Push the new selection to the widget. This is what makes the choice take effect
+                // right away: if a Glance session is already running for this instance (it is on
+                // first placement, because the placeholder was just composed) the update hands it
+                // the state we wrote above; otherwise it starts a session and runs provideGlance.
+                widgetFor(appWidgetId)?.update(this@WidgetConfigurationActivity, glanceId)
             } catch (e: Exception) {
                 // Widget will update on its next scheduled cycle if the above fails
             }
@@ -119,6 +112,23 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
             )
             finish()
+        }
+    }
+
+    // Which of the three widget types this instance is. getAppWidgetIds() is used rather than
+    // getAppWidgetInfo() because it is scoped to our own provider and stays reliable while the
+    // widget is still being placed.
+    private fun widgetFor(appWidgetId: Int): GlanceAppWidget? {
+        val appWidgetManager = AppWidgetManager.getInstance(this)
+        fun belongsTo(receiver: Class<*>) = appWidgetManager
+            .getAppWidgetIds(ComponentName(this, receiver))
+            .contains(appWidgetId)
+
+        return when {
+            belongsTo(CompactInfoWidgetReceiver::class.java) -> CompactInfoWidget()
+            belongsTo(QuickUpdateWidgetReceiver::class.java) -> QuickUpdateWidget()
+            belongsTo(VisualWidgetReceiver::class.java) -> VisualWidget()
+            else -> null
         }
     }
 }
