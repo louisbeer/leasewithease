@@ -42,6 +42,56 @@
             android:name=".HelpActivity"
             android:label="Help"
             android:theme="@style/Theme.LeaseWithEase" />
+
+        <!-- Widget configuration activity — shared by all three widget types -->
+        <activity
+            android:name=".widget.WidgetConfigurationActivity"
+            android:exported="true"
+            android:label="Select Vehicle"
+            android:theme="@style/Theme.LeaseWithEase">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!-- Widget 1: Compact Info -->
+        <receiver
+            android:name=".widget.CompactInfoWidgetReceiver"
+            android:exported="true"
+            android:label="@string/compact_info_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/compact_info_widget_info" />
+        </receiver>
+
+        <!-- Widget 2: Quick Update -->
+        <receiver
+            android:name=".widget.QuickUpdateWidgetReceiver"
+            android:exported="true"
+            android:label="@string/quick_update_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_update_widget_info" />
+        </receiver>
+
+        <!-- Widget 3: Visual -->
+        <receiver
+            android:name=".widget.VisualWidgetReceiver"
+            android:exported="true"
+            android:label="@string/visual_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/visual_widget_info" />
+        </receiver>
     </application>
 
 </manifest>
