@@ -166,7 +166,10 @@ fun ContractList(
     openContractId: Long = -1L
 ) {
     val contracts by contractViewModel.contracts.collectAsState()
-    var selectedContractForEdit by remember { mutableStateOf<ContractWithTrips?>(null) }
+    var selectedContractId by remember { mutableStateOf<Long?>(null) }
+    // Resolved from the live list rather than held on to, so the sheet keeps up with trips added
+    // on the trips screen and never writes back a contract that has changed underneath it.
+    val selectedContractForEdit = contracts.find { it.contract.id == selectedContractId }
     var contractToDelete by remember { mutableStateOf<ContractWithTrips?>(null) }
     var showMileageDecreaseConfirmDialog by remember { mutableStateOf(false) }
     var newMileageValue by remember { mutableStateOf(0) }
@@ -180,7 +183,7 @@ fun ContractList(
         if (openContractId != -1L && !handledWidgetOpen && contracts.isNotEmpty()) {
             val target = contracts.find { it.contract.id == openContractId }
             if (target != null) {
-                selectedContractForEdit = target
+                selectedContractId = target.contract.id
                 handledWidgetOpen = true
             }
         }
@@ -206,7 +209,7 @@ fun ContractList(
             items(contracts) { contractWithTrips ->
                 ContractCard(
                     contractWithTrips = contractWithTrips,
-                    onEditClick = { selectedContractForEdit = contractWithTrips },
+                    onEditClick = { selectedContractId = contractWithTrips.contract.id },
                     onLongClick = { contractToDelete = contractWithTrips }
                 )
             }
@@ -217,7 +220,7 @@ fun ContractList(
         val screenHeight = LocalConfiguration.current.screenHeightDp.dp
         ModalBottomSheet(
             onDismissRequest = {
-                selectedContractForEdit = null
+                selectedContractId = null
                 Toast.makeText(context, "Action was cancelled", Toast.LENGTH_SHORT).show()
             },
             sheetState = sheetState,
@@ -257,7 +260,7 @@ fun ContractList(
                                 try {
                                     contractViewModel.updateMileage(selectedContractForEdit!!.contract, newMileage)
                                     sheetState.hide()
-                                    selectedContractForEdit = null
+                                    selectedContractId = null
                                     Toast.makeText(context, "Mileage updated successfully", Toast.LENGTH_SHORT).show()
                                 } catch (e: Exception) {
                                     Toast.makeText(context, "Error updating mileage: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
@@ -328,7 +331,7 @@ fun ContractList(
                                 contractViewModel.updateMileage(selectedContractForEdit!!.contract, newMileageValue)
                                 showMileageDecreaseConfirmDialog = false
                                 sheetState.hide()
-                                selectedContractForEdit = null
+                                selectedContractId = null
                                 Toast.makeText(context, "Mileage updated successfully", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
                                 Toast.makeText(context, "Error updating mileage: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
