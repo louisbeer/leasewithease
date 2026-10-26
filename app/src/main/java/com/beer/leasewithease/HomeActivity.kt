@@ -47,12 +47,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,13 +76,16 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.beer.leasewithease.domain.model.Contract
 import com.beer.leasewithease.domain.model.VehicleType
+import com.beer.leasewithease.domain.usecase.CalculateMileageDiff
 import com.beer.leasewithease.theme.LeaseWithEaseTheme
 import com.beer.leasewithease.theme.customColors
 import com.beer.leasewithease.ui.home.ContractViewModel
+import androidx.glance.appwidget.updateAll
+import com.beer.leasewithease.widget.CompactInfoWidget
+import com.beer.leasewithease.widget.QuickUpdateWidget
+import com.beer.leasewithease.widget.VisualWidget
 import dagger.hilt.android.AndroidEntryPoint
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class HomeActivity : ComponentActivity() {
@@ -90,6 +95,8 @@ class HomeActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val openContractId = intent.getLongExtra(EXTRA_OPEN_CONTRACT_ID, -1L)
 
         setContent {
             LeaseWithEaseTheme {
@@ -121,16 +128,37 @@ class HomeActivity : ComponentActivity() {
                         )
                     }
                 ) { padding ->
-                    ContractList(contractViewModel = contractViewModel, modifier = Modifier.padding(padding))
+                    ContractList(
+                        contractViewModel = contractViewModel,
+                        modifier = Modifier.padding(padding),
+                        openContractId = openContractId
+                    )
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch {
+            CompactInfoWidget().updateAll(this@HomeActivity)
+            QuickUpdateWidget().updateAll(this@HomeActivity)
+            VisualWidget().updateAll(this@HomeActivity)
+        }
+    }
+
+    companion object {
+        const val EXTRA_OPEN_CONTRACT_ID = "extra_open_contract_id"
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ContractList(contractViewModel: ContractViewModel, modifier: Modifier = Modifier) {
+fun ContractList(
+    contractViewModel: ContractViewModel,
+    modifier: Modifier = Modifier,
+    openContractId: Long = -1L
+) {
     val contracts by contractViewModel.contracts.collectAsState()
     var selectedContractForEdit by remember { mutableStateOf<Contract?>(null) }
     var contractToDelete by remember { mutableStateOf<Contract?>(null) }
@@ -139,6 +167,18 @@ fun ContractList(contractViewModel: ContractViewModel, modifier: Modifier = Modi
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    // Auto-open the mileage bottom sheet when launched from a widget tap
+    var handledWidgetOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(contracts) {
+        if (openContractId != -1L && !handledWidgetOpen && contracts.isNotEmpty()) {
+            val target = contracts.find { it.id == openContractId }
+            if (target != null) {
+                selectedContractForEdit = target
+                handledWidgetOpen = true
+            }
+        }
+    }
 
     if (contracts.isEmpty()) {
         Column(
@@ -395,45 +435,17 @@ fun ContractCard(contract: Contract, onEditClick: () -> Unit, onLongClick: () ->
             }
 
             // Kilometer balance indicator
-            val contractDurationInDays = contract.durationInMonths * 30.4375 // Average days in a month
-            val daysSinceContractStart = if (contract.startDate.time > 0 && contract.startDate.time <= System.currentTimeMillis()) {
-                TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - contract.startDate.time) + 1
-            } else {
-                0L
-            }
-
-            val allowedKilometersForToday = if (contractDurationInDays > 0) {
-                (contract.includedKilometers.toDouble() / contractDurationInDays) * daysSinceContractStart
-            } else {
-                0.0
-            }
-
-            val actualUsedKilometers = (contract.vehicleMileage - contract.mileageAtContractStart).coerceAtLeast(0)
-
-            val kilometerDifference = allowedKilometersForToday - actualUsedKilometers
+            val diff = CalculateMileageDiff.calculate(contract)
+            val kilometerDifference = diff.kilometerDifference
+            val costText = diff.costText
+            val greenProgress = diff.greenProgress
+            val redProgress = diff.redProgress
 
             val differenceColor = when {
                 kilometerDifference > 5 -> MaterialTheme.customColors.balanceIndicatorGood
                 kilometerDifference < -5 -> MaterialTheme.customColors.balanceIndicatorBad
                 else -> LocalContentColor.current
             }
-
-            val costText = if (kilometerDifference < 0 && contract.costPerExtraKilometer > 0) {
-                val extraCost = abs(kilometerDifference) * contract.costPerExtraKilometer
-                " (%.2f€)".format(extraCost)
-            } else {
-                ""
-            }
-
-            val tenPercentOfTotalKm = contract.includedKilometers * 0.1
-            val progress = if (tenPercentOfTotalKm > 0) {
-                (kilometerDifference / tenPercentOfTotalKm).toFloat().coerceIn(-1f, 1f)
-            } else {
-                0f
-            }
-
-            val greenProgress = (progress).coerceIn(0f, 1f)
-            val redProgress = (-progress).coerceIn(0f, 1f)
 
             Column(modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp)) {
                 Row(

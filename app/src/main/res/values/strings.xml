@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">LeaseWithEase</string>
+    <string name="compact_info_widget_label">Compact Info</string>
+    <string name="compact_info_widget_description">Compact vehicle mileage overview</string>
+    <string name="quick_update_widget_label">Quick Update</string>
+    <string name="quick_update_widget_description">Vehicle mileage with quick update button</string>
+    <string name="visual_widget_label">Visual</string>
+    <string name="visual_widget_description">Visual vehicle mileage overview</string>
 </resources>
