@@ -14,8 +14,6 @@ class ContractRepository @Inject constructor(
     private val plannedTripDao: PlannedTripDao
 ) {
 
-    fun getAllContracts(): Flow<List<Contract>> = contractDao.getAllContracts()
-
     fun getAllContractsWithTrips(): Flow<List<ContractWithTrips>> =
         contractDao.getAllContractsWithTrips()
 

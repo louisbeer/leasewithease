@@ -56,9 +56,13 @@ class QuickUpdateWidget : GlanceAppWidget() {
 
         provideContent {
             GlanceTheme(colors = LeaseWithEaseWidgetColors) {
-                val contract = rememberConfiguredContract(initialContract)
-                if (contract != null) {
-                    val diff = CalculateMileageDiff.calculate(contract)
+                val contractWithTrips = rememberConfiguredContract(initialContract)
+                if (contractWithTrips != null) {
+                    val contract = contractWithTrips.contract
+                    val diff = CalculateMileageDiff.calculate(
+                        contract,
+                        contractWithTrips.plannedTrips
+                    )
                     val size = LocalSize.current
 
                     // Opening HomeActivity with the contract ID triggers the mileage update bottom sheet

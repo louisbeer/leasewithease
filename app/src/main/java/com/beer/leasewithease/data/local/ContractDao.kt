@@ -13,9 +13,6 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ContractDao {
 
-    @Query("SELECT * FROM contract")
-    fun getAllContracts(): Flow<List<Contract>>
-
     @Transaction
     @Query("SELECT * FROM contract")
     fun getAllContractsWithTrips(): Flow<List<ContractWithTrips>>

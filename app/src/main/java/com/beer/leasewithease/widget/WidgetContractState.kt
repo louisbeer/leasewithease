@@ -9,7 +9,7 @@ import androidx.glance.LocalContext
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.currentState
 import androidx.glance.state.PreferencesGlanceStateDefinition
-import com.beer.leasewithease.domain.model.Contract
+import com.beer.leasewithease.domain.model.ContractWithTrips
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,7 +19,7 @@ import kotlinx.coroutines.withContext
  * [rememberConfiguredContract]. Call this from `provideGlance` before `provideContent` so the first
  * frame already shows the vehicle instead of a placeholder.
  */
-internal suspend fun loadConfiguredContract(context: Context, id: GlanceId): Contract? {
+internal suspend fun loadConfiguredContract(context: Context, id: GlanceId): ContractWithTrips? {
     val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
     return prefs[CONTRACT_ID_KEY]?.let { loadContract(context, it) }
 }
@@ -36,7 +36,7 @@ internal suspend fun loadConfiguredContract(context: Context, id: GlanceId): Con
  * @param initial the contract already loaded in `provideGlance`, so the first frame is not blank.
  */
 @Composable
-internal fun rememberConfiguredContract(initial: Contract?): Contract? {
+internal fun rememberConfiguredContract(initial: ContractWithTrips?): ContractWithTrips? {
     val context = LocalContext.current
     val contractId = currentState(CONTRACT_ID_KEY)
     val contract by produceState(initial, contractId) {
@@ -45,10 +45,10 @@ internal fun rememberConfiguredContract(initial: Contract?): Contract? {
     return contract
 }
 
-private suspend fun loadContract(context: Context, contractId: Long): Contract? =
+private suspend fun loadContract(context: Context, contractId: Long): ContractWithTrips? =
     withContext(Dispatchers.IO) {
         EntryPointAccessors.fromApplication(
             context.applicationContext,
             WidgetEntryPoint::class.java
-        ).contractRepository().getContractById(contractId.toInt())
+        ).contractRepository().getContractWithTripsById(contractId)
     }
